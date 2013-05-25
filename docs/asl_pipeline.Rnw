@@ -1,10 +1,104 @@
 \documentclass{article}
 \title{ASL Pipeline}
 \begin{document}
-\SweaveOpts{concordance=TRUE}
 
 \maketitle
-This is how we compile a pdf. 
 
+\section{Introduction}
+
+ASL is important (see FNIH proposal)
+
+We want to test a pipeline for ASL and CBF in neurodegeneration.
+
+\section{Methods}
+
+\subsection{Inputs and outputs}
+Inputs for ASL reconstruction:
+\begin{enumerate}
+  \item ASL image
+  \item T1 image, same subject as ASL
+  \item T1 tissue segmentation and brain mask 
+  \item Parameters for ASL sequence, otherwise defaults will be used,
+    e.g. : Transit time ($\delta$)=1500 ms, inv. efficiency ($\alpha$)=0.85, gray matter T1=1400 ms, arterial T1=1600 ms .
+  \item Other pipeline parameters (to be determined) such as spatial
+    and temporal smoothing.
+  \end{enumerate}
+  
+We will cover two steps.   First, how to gain the T1 tissue
+segmentation and brain mask by using a template.   Second, how to use
+the segmented individual T1 to guide ASL to cbf conversion and
+subsequent analysis.
+
+\subsection{Segmenting the individual T1 with a template and co-registration between ASL and T1}
+  
+
+\subsection{ASL2CBF}
+Much of the technical details of ASL reconstruction are covered in the
+following excellent papers:
+\begin{itemize}
+  \item Implementation of Quantitative Perfusion Imaging Techniques for Functional Brain Mapping using Pulsed Arterial Spin Labeling
+
+\item Quantitative analysis of arterial spin labeling FMRI data using a general linear model
+
+\item Improving cerebral blood flow quantification for arterial spin labeled
+perfusion MRI by removing residual motion artifacts and global
+signal fluctuations
+\end{itemize}
+
+Given the inputs listed above, the pipeline will estimate perfusion from an ASL time series
+     using a (robust) regression approach.  Several steps are required:
+\begin{itemize}
+  \item Motion  correction.
+  \item Masking the ASL image, possibly by using the T1 mask and
+    coregistration with T1.
+  \item Find nuisance variables such as global signal (optional)
+    and compcor summary of physiological confounds.
+   \item Employ linear regression to estimate the perfusion itself
+     while controlling for the nuisance variables.  
+   \item Currently, the ANTsR function aslPerfusion will estimate the m0 image from
+     the mean of the control tags assuming that the data is acquired T
+     C T C as is most of JJ's data.   This is applicable for
+     CASL/PCASL but PASL requires a separately acquired M0.  The
+     function should support both operations.
+     \item This function should also alternatively take a mask in from
+       the user which defines where CBF will be calculated (e.g. you
+       dont want to compute it in background). 
+   \end{itemize}
+All of the above steps are implemented in aslPerfusion in ANTsR. Once complete, quantitative CBF can be obtained by mutiplying the
+   output of this function by a scalar that varies in time
+   (hmm---maybe this needs to be done before we regress).   The scalar
+   does not vary in time if you ignore slice timing.  Several people
+   indicate that slice timing correction has a minimal effect on
+   data.  The detail of converting perfusion to CBF 
+   will change with CASL, PCASL or PASL sequences.  Recall, though,
+   that quantitative CBF is not needed for most applications as it is,
+   ultimately, just a scalar change to the perfusion value. 
+
+These basic steps get us 90\% of the way there if not 95.  There might
+be a couple other details that are relatively minor in comparison.
+
+\subsection{PVC}
+
+Once we have perfusion in the subject space (or CBF), we may want to
+estimate partial volume correction to assign the degree to which CBF
+is determined by the underlying brain structure.  This can be a key to
+separating structural and functional signatures of disease.
+
+
+\subsection{Quality Control Measurements}
+
+
+\subsection{Population Analysis}
+
+Finally, mapping to a group template may be useful for voxel-wise
+group studies or analysis by decomposition as we perform in eigenanatomy.
+
+\section{Reproducible Pipeline Example}
+
+show some R code here. 
+
+\section{Discussion}
+
+We did it!
 
 \end{document}
