@@ -77,6 +77,11 @@ All of the above steps are implemented in aslPerfusion in ANTsR. Once complete, 
 These basic steps get us 90\% of the way there if not 95.  There might
 be a couple other details that are relatively minor in comparison.
 
+
+\paragraph{Not yet implemented: quantitative cbf - ask jeff}
+\paragraph{Not yet implemented: quantitative control - think about this}
+\paragraph{Not yet implemented: pass external mask to aslPerfusion}
+
 \subsection{PVC}
 
 Once we have perfusion in the subject space (or CBF), we may want to
@@ -87,6 +92,7 @@ separating structural and functional signatures of disease.
 
 \subsection{Quality Control Measurements}
 
+\subsection{Network analysis}
 
 \subsection{Population Analysis}
 
