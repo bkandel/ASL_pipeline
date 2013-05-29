@@ -1,0 +1,15 @@
+{
+    "contents" : "\\documentclass{article}\n\\title{ASL Pipeline}\n\\begin{document}\n\\SweaveOpts{concordance=TRUE}\n\n\\maketitle\nThis is how we compile a pdf. \n\n\n\\end{document}",
+    "created" : 1369424411823.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "114324919",
+    "id" : "BC24424A",
+    "lastKnownWriteTime" : 1369424030,
+    "path" : "~/code/ASL_pipeline/asl_pipeline.Rnw",
+    "properties" : {
+    },
+    "source_on_save" : false,
+    "type" : "sweave"
+}

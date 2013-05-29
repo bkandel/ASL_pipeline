@@ -81,6 +81,8 @@ time in blood \cite{Varsha}) which we may implement in the future.
 
 Show some R code to get CBF from ASL and map to a group template. 
 
+
+
 \paragraph{Not yet implemented: quantitative cbf - ask jeff}
 \paragraph{Not yet implemented: quantitative control - think about this}
 \paragraph{Not yet implemented: pass external mask to aslPerfusion}
@@ -103,6 +105,31 @@ Finally, mapping to a group template may be useful for voxel-wise
 group studies or analysis by decomposition as we perform in eigenanatomy.
 
 \section{Reproducible Pipeline Example}
+First, we load in the input data.
+<<load>>=
+suppressMessages(require(ANTsR))
+m0            <- antsImageRead("../data/M0.nii.gz", 3)
+pasl          <- antsImageRead("../data/PASL.nii.gz", 4)
+pcasl         <- antsImageRead("../data/PCASL.nii.gz", 4)
+casl          <- antsImageRead("../data/CASL.nii.gz", 4)
+t1            <- antsImageRead("../data/t1.nii.gz", 3)
+template      <- antsImageRead("../data/template/T1template.nii.gz", 3)
+mask.cerebrum <- antsImageRead("../data/template/Labels/T1template_cerebrummask.nii.gz", 3)
+@
+Now, we get an affine registration from the M0 image to the T1 image and a deformable registration from the T1 image to the template so that we can use the template cerebrum mask. 
+<<register>>=
+mydir <- paste(tempdir(),"/Z", sep='')
+transform.asl2t1 <- antsRegistration(t1, m0, "Affine", mydir)
+transform.t12template <- antsRegistration(template, t1, "SyN", mydir)
+pasl.warped <- antsApplyTransforms(template, pasl, 
+                      transformlist=list(transform.t12template,transform.asl2t1))
+casl.warped <- antsApplyTransforms(template, casl, 
+                      transformlist=list(transform.t12template,transform.asl2t1))
+pcasl.warped <- antsApplyTransforms(template, pcasl, 
+                      transformlist=list(transform.t12template,transform.asl2t1))
+@
+
+
 
 show some R code here. 
 

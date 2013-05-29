@@ -1,0 +1,5 @@
+T1 from: /home/jtduda/data/ASL_Test_Retest/processed/S01/2008_12_03_1702/S01_2008_12_03_1702_n4.nii.gz
+PASL from: /home/jtduda/data/ASL_Test_Retest/subjects/S01/2008_12_03_1702/rawNii/S01_2008_12_03_1702_ep2d_fairest_UI_1000ms_1.nii.gz
+PCASL from: /home/jtduda/data/ASL_Test_Retest/subjects/S01/2008_12_03_1702/rawNii/S01_2008_12_03_1702_ep2d_pcasl_UI_PHC_1000ms_1.nii.gz
+CASL from: /home/jtduda/data/ASL_Test_Retest/subjects/S01/2008_12_03_1702/rawNii/S01_2008_12_03_1702_ep2d_casl_UI_1000ms_1.nii.gz
+M0 from: /home/jtduda/data/ASL_Test_Retest/subjects/S01/2008_12_03_1702/rawNii/S01_2008_12_03_1702_ep2d_fairest_UI_M0_1.nii.gz
