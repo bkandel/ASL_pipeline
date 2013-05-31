@@ -115,19 +115,45 @@ casl          <- antsImageRead("../data/CASL.nii.gz", 4)
 t1            <- antsImageRead("../data/t1.nii.gz", 3)
 template      <- antsImageRead("../data/template/T1template.nii.gz", 3)
 mask.cerebrum <- antsImageRead("../data/template/Labels/T1template_cerebrummask.nii.gz", 3)
+prior.csf     <- antsImageRead("../data/template/Labels/T1template_prior_01.nii.gz", 3)
+prior.gm      <- antsImageRead("../data/template/Labels/T1template_prior_02.nii.gz", 3)
+prior.wm      <- antsImageRead("../data/template/Labels/T1template_prior_03.nii.gz", 3)
 @
-Now, we get an affine registration from the M0 image to the T1 image and a deformable registration from the T1 image to the template so that we can use the template cerebrum mask. 
-<<register>>=
+Before we do any ASL processing, we have to do appropriate preprocessing (bias correction, brain extraction, and segmentation) of the T1 image. 
+<<preprocess,results="hide">>=
 mydir <- paste(tempdir(),"/Z", sep='')
-transform.asl2t1 <- antsRegistration(t1, m0, "Affine", mydir)
-transform.t12template <- antsRegistration(template, t1, "SyN", mydir)
-pasl.warped <- antsApplyTransforms(template, pasl, 
-                      transformlist=list(transform.t12template,transform.asl2t1))
-casl.warped <- antsApplyTransforms(template, casl, 
-                      transformlist=list(transform.t12template,transform.asl2t1))
-pcasl.warped <- antsApplyTransforms(template, pcasl, 
-                      transformlist=list(transform.t12template,transform.asl2t1))
+t1.n4 <- abpN4(img=t1)
+t1.brain <- abpBrainExtraction(img=t1.n4, tem=template, temmask = mask.cerebrum)
+
+transform.t12template <- suppressMessages(antsRegistration(
+  fixed=template, moving=t1.n4, "Affine", mydir))
+
 @
+
+
+Now, we get an affine registration from the M0 image to the T1 image and a deformable registration from the T1 image to the template so that we can use the template cerebrum mask, if desired. 
+<<register,results="hide">>=
+
+
+transform.asl2t1 <- suppressMessages(antsRegistration(t1, m0, "Rigid", mydir))
+pasl.warped <- antsApplyTransforms(template, pasl, 
+                      transformlist=c(transform.t12template$fwdtransforms,
+                                         transform.asl2t1$fwdtransforms))
+casl.warped <- antsApplyTransforms(template, casl, 
+                      transformlist=c(transform.t12template$fwdtransforms,
+                                      transform.asl2t1$fwdtransforms))
+pcasl.warped <- antsApplyTransforms(template, pcasl, 
+                      transformlist=list(transform.t12template$fwdtransforms, 
+                                         transform.asl2t1$fwdtransforms))
+@
+After obtaining the requisite masks, we can compute perfusion and CBF from the raw ASL images.  All necessary steps, including motion correction, detrending, and regression of physiological confounds are done automatically. 
+<<computeCBF>>=
+pasl.perfusion <- aslPerfusion(pasl)
+pcasl.perfusion <- aslPerfusion(pcasl) 
+casl.perfusion <- aslPerfusion(casl)
+@
+
+
 
 
 
