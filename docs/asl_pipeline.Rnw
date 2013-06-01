@@ -10,30 +10,7 @@ ASL is important (see FNIH proposal)
 
 We want to test a pipeline for ASL and CBF in neurodegeneration.
 
-\section{Methods}
-
-\subsection{Inputs and outputs}
-Inputs for ASL reconstruction:
-\begin{enumerate}
-  \item ASL image
-  \item T1 image, same subject as ASL
-  \item T1 tissue segmentation and brain mask 
-  \item Parameters for ASL sequence, otherwise defaults will be used,
-    e.g. : Transit time ($\delta$)=1500 ms, inv. efficiency ($\alpha$)=0.85, gray matter T1=1400 ms, arterial T1=1600 ms .
-  \item Other pipeline parameters (to be determined) such as spatial
-    and temporal smoothing.
-  \end{enumerate}
-  
-We will cover two steps.   First, how to gain the T1 tissue
-segmentation and brain mask by using a template.   Second, how to use
-the segmented individual T1 to guide ASL to cbf conversion and
-subsequent analysis.
-
-\subsection{Segmenting the individual T1 with a template and co-registration between ASL and T1}
-  
-
-\subsection{ASL2CBF}
-Much of the technical details of ASL reconstruction are covered in the
+Technical details of ASL reconstruction are covered in the
 following excellent papers:
 \begin{itemize}
   \item Implementation of Quantitative Perfusion Imaging Techniques for Functional Brain Mapping using Pulsed Arterial Spin Labeling
@@ -45,8 +22,94 @@ perfusion MRI by removing residual motion artifacts and global
 signal fluctuations
 \end{itemize}
 
-Given the inputs listed above, the pipeline will estimate perfusion from an ASL time series
-     using a (robust) regression approach.  Several steps are required:
+\section{Methods and Reproducible Pipeline Example}
+
+\subsection{Inputs and outputs}
+Inputs for ASL reconstruction:
+\begin{enumerate}
+  \item ASL image
+  \item T1 image, same subject as ASL
+  \item T1 tissue segmentation and brain mask 
+  \item Parameters for ASL sequence, otherwise defaults will be used,
+    e.g. : Transit time ($\delta$)=1500 ms, inv. efficiency ($\alpha$)=0.85, gray matter T1=1400 ms, arterial T1=1600 ms .
+  \item Other pipeline parameters (to be determined) such as spatial
+    and temporal smoothing.
+  \item Template with priors.
+  \end{enumerate}
+  
+This workflow begins with raw ASL and T1 nifti images as input.  So, we need spatial priors such as cerebrum masks and tissue probabilities to guide the segmentation of both T1 and perfusion.  First, we show a simple (ok but not optimal) approach to brain extraction and segmentation.
+  
+  
+
+\paragraph{Not yet implemented: quantitative cbf - ask jeff}
+\paragraph{Not yet implemented: quantitative control - think about this}
+
+
+First, we load in the input data.
+<<load>>=
+suppressMessages(require(ANTsR))
+m0            <- antsImageRead("../data/M0.nii.gz", 3)
+pasl          <- antsImageRead("../data/PASL.nii.gz", 4)
+pcasl         <- antsImageRead("../data/PCASL.nii.gz", 4)
+casl          <- antsImageRead("../data/CASL.nii.gz", 4)
+t1            <- antsImageRead("../data/t1.nii.gz", 3)
+template      <- antsImageRead("../data/template/T1template.nii.gz", 3)
+mask.cerebrum <- antsImageRead("../data/template/Labels/T1template_cerebrummask.nii.gz", 3)
+prior.csf     <- antsImageRead("../data/template/Labels/T1template_prior_01.nii.gz", 3)
+prior.gm      <- antsImageRead("../data/template/Labels/T1template_prior_02.nii.gz", 3)
+prior.wm      <- antsImageRead("../data/template/Labels/T1template_prior_03.nii.gz", 3)
+@
+
+\subsection{Segmenting the individual T1 with a template and co-registration between ASL and T1}
+
+
+Before we do any ASL processing, we have to do appropriate preprocessing (bias correction, brain extraction, and segmentation) of the T1 image. 
+<<preprocess,results="hide">>=
+mydir <- paste(tempdir(),"/Z", sep='')
+t1.n4 <- abpN4(img=t1,  intensityTruncation=c( 0.025, 0.999, 256 ) )
+t1.brainx <- abpBrainExtraction(img=t1.n4, tem=template, temmask = mask.cerebrum)
+
+# you can redo the registration if you want, using only the brain but for this example, 
+# we can use the transforms computed by the brain extraction step
+print( names( t1.brainx )[4:5] )
+# transform.t12template <- suppressMessages(antsRegistration(
+#  fixed=templatebrain, moving=t1.brainx$brain, "Affine", mydir))
+
+@
+
+
+Now, we get an affine registration from the M0 image to the T1 image and a deformable registration from the T1 image to the template so that we can use the template cerebrum mask, if desired. 
+
+In the case of PCASL, we register to the average ASL image.
+
+<<register,results="hide">>=
+
+avgpcasl<-new( "antsImage" , "float" , 3 )
+antsMotionCorr( list( d = 3 , a = pcasl , o = avgpcasl ) )
+plotANTsImage( avgpcasl, slices="1x14x2",axis=0)
+transform.asl2t1 <- suppressMessages(antsRegistration(t1.brainx$brain, avgpcasl, "Rigid", mydir))
+concatenatedtx<-c(  unlist( t1.brainx$fwdtransforms ) , unlist( transform.asl2t1$fwdtransforms ) )
+pcasl.warped <- antsApplyTransforms( template, avgpcasl, 
+                      transformlist=concatenatedtx )
+par( mfrow=c(2,1))
+plotANTsImage( template      , slices="60x120x10", axis=0 )
+plotANTsImage( pcasl.warped  , slices="60x120x10", axis=0 )
+
+# also get the t1 brain extraction mask into the space of the asl
+pcaslmask<-new( "antsImage" , "float" , 3 )
+antsApplyTransforms( list( d=3, i=t1.brain$bmask,n="NearestNeighbor",
+  o=pcaslmask,r=avgpcasl,t=paste("[",transform.asl2t1$invtransforms[1],",1]",sep='') ) )
+par( mfrow=c(2,1))
+plotANTsImage( avgpcasl , slices="1x14x2",axis=0)
+plotANTsImage( pcaslmask, slices="1x14x2",axis=0)
+@
+
+If the warped pcasl looks aligned with the template, then the brain extraction step and mapping between the average pcasl and t1 are ok.  The quality could be improved beyond this approach but this may be reasonable for many datasets.
+
+
+\subsection{Estimating Perfusion from the ASL Time Series}
+
+Given the inputs listed above, the pipeline will estimate perfusion from an ASL time series using a (robust) regression approach.  Several steps are required:
 \begin{itemize}
   \item Motion  correction.
   \item Masking the ASL image, possibly by using the T1 mask and
@@ -73,19 +136,28 @@ The output of these steps is the mean perfusion image adjusted for
 the user-selected covariates.  All of the above steps are implemented in aslPerfusion in ANTsR. Once
 complete, quantitative CBF can be obtained by mutiplying the output of
 this function by sequence dependent constants that account for
-labeling efficiency, slice timing and inversion efficiency  (FIXME---implement this
-as  cbf<-quantifyCBF(  meanperfusion, list(parameters including sequence), mask).   
+labeling efficiency, slice timing and inversion efficiency .  
 Note that there are additional corrections that can be made for
 subject-specific effects on CBF (e.g. measurements of T1 relaxation
 time in blood \cite{Varsha}) which we may implement in the future.  
 
-Show some R code to get CBF from ASL and map to a group template. 
+After obtaining the requisite masks, we can compute perfusion and CBF from the raw ASL images.  All necessary steps, including motion correction, detrending, and regression of physiological confounds are done automatically.
+<<computeCBF>>=
+pcasl.processing <- aslPerfusion(pcasl, mask=pcaslmask,moreaccurate=FALSE)
+pcasl.perfusion <- pcasl.processing$perfusion
+perfusion.warped <- antsApplyTransforms( template, pcasl.perfusion,
+                      transformlist=concatenatedtx )
 
+@
 
+Now you can convert perfusion to CBF via standard quantification equations for your sequence.
 
-\paragraph{Not yet implemented: quantitative cbf - ask jeff}
-\paragraph{Not yet implemented: quantitative control - think about this}
-\paragraph{Not yet implemented: pass external mask to aslPerfusion}
+(FIXME---implement this
+as  : )
+
+<<computeCBF>>=
+# cbf<-quantifyCBF(  pcasl.perfusion, list(parameters including sequence), mask).
+@
 
 \subsection{PVC}
 
@@ -93,7 +165,6 @@ Once we have perfusion in the subject space (or CBF), we may want to
 estimate partial volume correction to assign the degree to which CBF
 is determined by the underlying brain structure.  This can be a key to
 separating structural and functional signatures of disease.
-
 
 \subsection{Quality Control Measurements}
 
@@ -104,60 +175,6 @@ separating structural and functional signatures of disease.
 Finally, mapping to a group template may be useful for voxel-wise
 group studies or analysis by decomposition as we perform in eigenanatomy.
 
-\section{Reproducible Pipeline Example}
-First, we load in the input data.
-<<load>>=
-suppressMessages(require(ANTsR))
-m0            <- antsImageRead("../data/M0.nii.gz", 3)
-pasl          <- antsImageRead("../data/PASL.nii.gz", 4)
-pcasl         <- antsImageRead("../data/PCASL.nii.gz", 4)
-casl          <- antsImageRead("../data/CASL.nii.gz", 4)
-t1            <- antsImageRead("../data/t1.nii.gz", 3)
-template      <- antsImageRead("../data/template/T1template.nii.gz", 3)
-mask.cerebrum <- antsImageRead("../data/template/Labels/T1template_cerebrummask.nii.gz", 3)
-prior.csf     <- antsImageRead("../data/template/Labels/T1template_prior_01.nii.gz", 3)
-prior.gm      <- antsImageRead("../data/template/Labels/T1template_prior_02.nii.gz", 3)
-prior.wm      <- antsImageRead("../data/template/Labels/T1template_prior_03.nii.gz", 3)
-@
-Before we do any ASL processing, we have to do appropriate preprocessing (bias correction, brain extraction, and segmentation) of the T1 image. 
-<<preprocess,results="hide">>=
-mydir <- paste(tempdir(),"/Z", sep='')
-t1.n4 <- abpN4(img=t1,  intensityTruncation=c( 0.025, 0.999, 256 ) )
-t1.brain <- abpBrainExtraction(img=t1.n4, tem=template, temmask = mask.cerebrum)
-
-transform.t12template <- suppressMessages(antsRegistration(
-  fixed=template, moving=t1.n4, "Affine", mydir))
-
-@
-
-
-Now, we get an affine registration from the M0 image to the T1 image and a deformable registration from the T1 image to the template so that we can use the template cerebrum mask, if desired. 
-<<register,results="hide">>=
-
-
-transform.asl2t1 <- suppressMessages(antsRegistration(t1, m0, "Rigid", mydir))
-pasl.warped <- antsApplyTransforms(template, pasl, 
-                      transformlist=c(transform.t12template$fwdtransforms,
-                                         transform.asl2t1$fwdtransforms))
-casl.warped <- antsApplyTransforms(template, casl, 
-                      transformlist=c(transform.t12template$fwdtransforms,
-                                      transform.asl2t1$fwdtransforms))
-pcasl.warped <- antsApplyTransforms(template, pcasl, 
-                      transformlist=list(transform.t12template$fwdtransforms, 
-                                         transform.asl2t1$fwdtransforms))
-@
-After obtaining the requisite masks, we can compute perfusion and CBF from the raw ASL images.  All necessary steps, including motion correction, detrending, and regression of physiological confounds are done automatically. 
-<<computeCBF>>=
-pasl.perfusion <- aslPerfusion(pasl)
-pcasl.perfusion <- aslPerfusion(pcasl) 
-casl.perfusion <- aslPerfusion(casl)
-@
-
-
-
-
-
-show some R code here. 
 
 \section{Discussion}
 
