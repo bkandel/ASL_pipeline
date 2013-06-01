@@ -155,7 +155,7 @@ Now you can convert perfusion to CBF via standard quantification equations for y
 (FIXME---implement this
 as  : )
 
-<<computeCBF>>=
+<<quantCBF>>=
 # cbf<-quantifyCBF(  pcasl.perfusion, list(parameters including sequence), mask).
 @
 
