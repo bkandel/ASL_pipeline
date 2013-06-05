@@ -144,6 +144,8 @@ time in blood \cite{Varsha}) which we may implement in the future.
 After obtaining the requisite masks, we can compute perfusion and CBF from the raw ASL images.  All necessary steps, including motion correction, detrending, and regression of physiological confounds are done automatically.
 <<computeCBF>>=
 pcasl.processing <- aslPerfusion(pcasl, mask=pcaslmask,moreaccurate=FALSE)
+# in above, we should truncate outliers or add a 2nd filter / function to do so
+
 pcasl.perfusion <- pcasl.processing$perfusion
 perfusion.warped <- antsApplyTransforms( template, pcasl.perfusion,
                       transformlist=concatenatedtx )
@@ -151,9 +153,6 @@ perfusion.warped <- antsApplyTransforms( template, pcasl.perfusion,
 @
 
 Now you can convert perfusion to CBF via standard quantification equations for your sequence.
-
-(FIXME---implement this
-as  : )
 
 <<quantCBF>>=
 pcasl.parameters <- list( sequence="pcasl", m0=pcasl.processing$m0 )
@@ -169,7 +168,21 @@ separating structural and functional signatures of disease.
 
 \subsection{Quality Control Measurements}
 
+As a starter show histograms of the CBF image measurements in CSF, GM, WM
+
+plot the temporal SD image 
+
 \subsection{Network analysis}
+
+do a quick study of some common networks - salience, DMN, etc
+
+
+<<getAAL>>=
+aal      <- antsImageRead("../data/template/Labels/aal.nii.gz", 3)
+# transform this to the perfusion space and mask with the same mask
+# used for cbf .... or subset the matrix with the appropriate aal labels
+# then do some network biz
+@
 
 \subsection{Population Analysis}
 
