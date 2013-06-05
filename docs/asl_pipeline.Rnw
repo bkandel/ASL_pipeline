@@ -156,7 +156,8 @@ Now you can convert perfusion to CBF via standard quantification equations for y
 as  : )
 
 <<quantCBF>>=
-# cbf<-quantifyCBF(  pcasl.perfusion, list(parameters including sequence), mask).
+pcasl.parameters <- list( sequence="pcasl", m0=pcasl.processing$m0 )
+cbf <- quantifyCBF( pcasl.perfusion, pcaslmask, pcasl.parameters )
 @
 
 \subsection{PVC}
