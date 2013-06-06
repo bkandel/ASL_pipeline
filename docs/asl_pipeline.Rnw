@@ -97,7 +97,7 @@ plotANTsImage( pcasl.warped  , slices="60x120x10", axis=0 )
 
 # also get the t1 brain extraction mask into the space of the asl
 pcaslmask<-new( "antsImage" , "float" , 3 )
-antsApplyTransforms( list( d=3, i=t1.brainx$bmask,n="NearestNeighbor",
+antsApplyTransforms( list( d=3, i=t1.brainx$bmask,interpolator="NearestNeighbor",
   o=pcaslmask,r=avgpcasl,t=paste("[",transform.asl2t1$invtransforms[1],",1]",sep='') ) )
 par( mfrow=c(2,1))
 plotANTsImage( avgpcasl , slices="1x14x2",axis=0)
@@ -174,7 +174,7 @@ As a starter show histograms of the CBF image measurements in CSF, GM, WM
 
 <<getAAL>>=
 aal      <- antsImageRead("../data/template/Labels/aal.nii.gz", 3)
-aal2t1<-antsApplyTransforms( fixed=t1,moving=aal,n="NearestNeighbor",t=t1.brainx$fwdtransforms )
+aal2t1<-antsApplyTransforms( fixed=t1,moving=aal,interpolator="NearestNeighbor",t=t1.brainx$invtransforms )
 # transform this to the perfusion space and mask with the same mask
 # used for cbf .... or subset the matrix with the appropriate aal labels
 # then do some network biz
@@ -183,13 +183,14 @@ aal2t1<-antsApplyTransforms( fixed=t1,moving=aal,n="NearestNeighbor",t=t1.brainx
 Now use these to look at cbf variation in different tissue.
 
 <<qcCBF>>=
-tmask<-antsImageClone(t1.brainx$kmeansseg)
-tmask[ t1.brainx$kmeansseg != 2 ]<-0
-tmask[ t1.brainx$kmeansseg == 2 ]<-1
-qcvaluesg<-getROIValues( cbf.warped2t1, aal2t1, tmask)
-tmask[ t1.brainx$kmeansseg != 3 ]<-0
-tmask[ t1.brainx$kmeansseg == 3 ]<-1
-qcvaluesw<-getROIValues( cbf.warped2t1, aal2t1, tmask)
+  tmask<-antsImageClone(t1.brainx$kmeansseg)
+  tmask[ t1.brainx$kmeansseg != 2 ]<-0
+  tmask[ t1.brainx$kmeansseg == 2 ]<-1
+  qcvaluesg<-getROIValues( cbf.warped2t1, aal2t1, tmask)
+  tmask[ t1.brainx$kmeansseg != 3 ]<-0
+  tmask[ t1.brainx$kmeansseg == 3 ]<-1
+  qcvaluesw<-getROIValues( cbf.warped2t1, tmask, tmask)
+  print(paste("Mean GM",mean( qcvaluesg$roiMeans ),"Mean WM",mean( qcvaluesw$roiMeans )))
 @
 
 
