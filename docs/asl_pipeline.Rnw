@@ -147,8 +147,6 @@ pcasl.processing <- aslPerfusion(pcasl, mask=pcaslmask,moreaccurate=FALSE)
 # in above, we should truncate outliers or add a 2nd filter / function to do so
 
 pcasl.perfusion <- pcasl.processing$perfusion
-perfusion.warped <- antsApplyTransforms( template, pcasl.perfusion,
-                      transformlist=concatenatedtx )
 
 @
 
@@ -157,6 +155,9 @@ Now you can convert perfusion to CBF via standard quantification equations for y
 <<quantCBF>>=
 pcasl.parameters <- list( sequence="pcasl", m0=pcasl.processing$m0 )
 cbf <- quantifyCBF( pcasl.perfusion, pcaslmask, pcasl.parameters )
+cbf.warped2template <- antsApplyTransforms( template, cbf$meancbf,
+                        transformlist=concatenatedtx )
+cbf.warped2t1 <- antsApplyTransforms( fixed=t1, moving=cbf$meancbf, transformlist=c(unlist(transform.asl2t1$fwdtransforms ) ))
 @
 
 \subsection{PVC}
@@ -170,19 +171,34 @@ separating structural and functional signatures of disease.
 
 As a starter show histograms of the CBF image measurements in CSF, GM, WM
 
+
+<<getAAL>>=
+aal      <- antsImageRead("../data/template/Labels/aal.nii.gz", 3)
+aal2t1<-antsApplyTransforms( fixed=t1,moving=aal,n="NearestNeighbor",t=t1.brainx$fwdtransforms )
+# transform this to the perfusion space and mask with the same mask
+# used for cbf .... or subset the matrix with the appropriate aal labels
+# then do some network biz
+@
+
+Now use these to look at cbf variation in different tissue.
+
+<<qcCBF>>=
+tmask<-antsImageClone(t1.brainx$kmeansseg)
+tmask[ t1.brainx$kmeansseg != 2 ]<-0
+tmask[ t1.brainx$kmeansseg == 2 ]<-1
+qcvaluesg<-getROIValues( cbf.warped2t1, aal2t1, tmask)
+tmask[ t1.brainx$kmeansseg != 3 ]<-0
+tmask[ t1.brainx$kmeansseg == 3 ]<-1
+qcvaluesw<-getROIValues( cbf.warped2t1, aal2t1, tmask)
+@
+
+
 plot the temporal SD image 
 
 \subsection{Network analysis}
 
 do a quick study of some common networks - salience, DMN, etc
 
-
-<<getAAL>>=
-aal      <- antsImageRead("../data/template/Labels/aal.nii.gz", 3)
-# transform this to the perfusion space and mask with the same mask
-# used for cbf .... or subset the matrix with the appropriate aal labels
-# then do some network biz
-@
 
 \subsection{Population Analysis}
 
