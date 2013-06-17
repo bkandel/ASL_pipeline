@@ -51,8 +51,10 @@ suppressMessages(require(ANTsR))
 m0            <- antsImageRead("../data/M0.nii.gz", 3)
 pasl          <- antsImageRead("../data/PASL.nii.gz", 4)
 pcasl         <- antsImageRead("../data/PCASL.nii.gz", 4)
+# pcasl         <- antsImageRead("../data/109896_20100617_0005_ep2d_se_pcasl_PHC_1500ms.nii.gz", 4)
 casl          <- antsImageRead("../data/CASL.nii.gz", 4)
 t1            <- antsImageRead("../data/t1.nii.gz", 3)
+# t1            <- antsImageRead("../data/109896_20100617_mprage_t1.nii.gz", 3)
 template      <- antsImageRead("../data/template/T1template.nii.gz", 3)
 mask.cerebrum <- antsImageRead("../data/template/Labels/T1template_cerebrummask.nii.gz", 3)
 prior.csf     <- antsImageRead("../data/template/Labels/T1template_prior_01.nii.gz", 3)
@@ -69,12 +71,34 @@ mydir <- paste(tempdir(),"/Z", sep='')
 t1.n4 <- abpN4(img=t1,  intensityTruncation=c( 0.025, 0.999, 256 ) )
 t1.brainx <- abpBrainExtraction(img=t1.n4, tem=template, temmask = mask.cerebrum)
 
+
+if ( FALSE ) {
 # you can redo the registration if you want, using only the brain but for this example, 
 # we can use the transforms computed by the brain extraction step
-print( names( t1.brainx )[4:5] )
 # transform.t12template <- suppressMessages(antsRegistration(
 #  fixed=templatebrain, moving=t1.brainx$brain, "Affine", mydir))
-
+prob1warped <- antsApplyTransforms( t1.brainx$brain, prior.csf, 
+                      transformlist=t1.brainx$invtransforms )
+prob2warped <- antsApplyTransforms( t1.brainx$brain, prior.gm, 
+                      transformlist=t1.brainx$invtransforms )
+prob3warped <- antsApplyTransforms( t1.brainx$brain, prior.wm, 
+                      transformlist=t1.brainx$invtransforms )
+probabilityimages<-list( prob1warped, prob2warped  ,  prob3warped )
+# resegment with use of prior 
+brain<-antsImageClone( t1.brainx$brain )
+for ( its in 1:3 ) {
+  segs <- Atropos(d = 3, a = brain, m = "[0.1,1x1x1]", c = "[5,0]",
+    i = probabilityimages, x =  t1.brainx$bmask , priorweight = 0.5 )
+  mywmask<-antsImageClone( t1.brainx$bmask )
+  ImageMath(3,mywmask,"+",segs$probabilityimages[[2]],segs$probabilityimages[[3]])
+  brain<-abpN4( img = t1.brainx$brain , intensityTruncation=c( 0.01, 0.999, 256 )  ,
+        mask = t1.brainx$bmask , weightimg= mywmask )
+  ImageMath(3, brain,'m', brain, t1.brainx$bmask)
+}
+segs <- Atropos(d = 3, a = brain, m = "[0.1,1x1x1]", c = "[25,0]",
+    i = probabilityimages, x =  t1.brainx$bmask , priorweight = 0.33 )
+t1.brainx$kmeansseg<-segs$segmentation
+}
 @
 
 
@@ -142,8 +166,8 @@ subject-specific effects on CBF (e.g. measurements of T1 relaxation
 time in blood \cite{Varsha}) which we may implement in the future.  
 
 After obtaining the requisite masks, we can compute perfusion and CBF from the raw ASL images.  All necessary steps, including motion correction, detrending, and regression of physiological confounds are done automatically.
-<<computeCBF>>=
-pcasl.processing <- aslPerfusion(pcasl, mask=pcaslmask,moreaccurate=FALSE)
+<<computePerfusion>>=
+pcasl.processing <- aslPerfusion(pcasl, mask=pcaslmask,moreaccurate=FALSE )
 # in above, we should truncate outliers or add a 2nd filter / function to do so
 
 pcasl.perfusion <- pcasl.processing$perfusion
@@ -189,6 +213,10 @@ Now use these to look at cbf variation in different tissue.
   qcvaluesg<-getROIValues( cbf.warped2t1, aal2t1, tmask)
   tmask[ t1.brainx$kmeansseg != 3 ]<-0
   tmask[ t1.brainx$kmeansseg == 3 ]<-1
+  tmaskf<-antsImageClone(tmask,"float")
+  ImageMath(3,tmaskf,"ME",tmaskf,2)
+  ImageMath(3,tmaskf,"GetLargestComponent",tmaskf)
+  tmask<-antsImageClone(tmaskf,"unsigned int")
   qcvaluesw<-getROIValues( cbf.warped2t1, tmask, tmask)
   print(paste("Mean GM",mean( qcvaluesg$roiMeans ),"Mean WM",mean( qcvaluesw$roiMeans )))
 @
@@ -200,12 +228,10 @@ plot the temporal SD image
 
 do a quick study of some common networks - salience, DMN, etc
 
-
 \subsection{Population Analysis}
 
 Finally, mapping to a group template may be useful for voxel-wise
 group studies or analysis by decomposition as we perform in eigenanatomy.
-
 
 \section{Discussion}
 
