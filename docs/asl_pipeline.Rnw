@@ -48,18 +48,20 @@ This workflow begins with raw ASL and T1 nifti images as input.  So, we need spa
 First, we load in the input data.
 <<load>>=
 suppressMessages(require(ANTsR))
-m0            <- antsImageRead("../data/M0.nii.gz", 3)
-pasl          <- antsImageRead("../data/PASL.nii.gz", 4)
-pcasl         <- antsImageRead("../data/PCASL.nii.gz", 4)
-# pcasl         <- antsImageRead("../data/109896_20100617_0005_ep2d_se_pcasl_PHC_1500ms.nii.gz", 4)
-casl          <- antsImageRead("../data/CASL.nii.gz", 4)
-t1            <- antsImageRead("../data/t1.nii.gz", 3)
-# t1            <- antsImageRead("../data/109896_20100617_mprage_t1.nii.gz", 3)
-template      <- antsImageRead("../data/template/T1template.nii.gz", 3)
-mask.cerebrum <- antsImageRead("../data/template/Labels/T1template_cerebrummask.nii.gz", 3)
-prior.csf     <- antsImageRead("../data/template/Labels/T1template_prior_01.nii.gz", 3)
-prior.gm      <- antsImageRead("../data/template/Labels/T1template_prior_02.nii.gz", 3)
-prior.wm      <- antsImageRead("../data/template/Labels/T1template_prior_03.nii.gz", 3)
+rootdir<-"./data/"
+aal           <- antsImageRead(paste(rootdir,"template/Labels/aal.nii.gz",sep=''), 3)
+m0            <- antsImageRead(paste(rootdir,"M0.nii.gz",sep=''), 3)
+pasl          <- antsImageRead(paste(rootdir,"PASL.nii.gz",sep=''), 4)
+pcasl         <- antsImageRead(paste(rootdir,"PCASL.nii.gz",sep=''), 4)
+# pcasl         <- antsImageRead(paste(rootdir,"109896_20100617_0005_ep2d_se_pcasl_PHC_1500ms.nii.gz",sep=''), 4)
+casl          <- antsImageRead(paste(rootdir,"CASL.nii.gz",sep=''), 4)
+t1            <- antsImageRead(paste(rootdir,"t1.nii.gz",sep=''), 3)
+# t1            <- antsImageRead(paste(rootdir,"109896_20100617_mprage_t1.nii.gz",sep=''), 3)
+template      <- antsImageRead(paste(rootdir,"template/T1template.nii.gz",sep=''), 3)
+mask.cerebrum <- antsImageRead(paste(rootdir,"template/Labels/T1template_cerebrummask.nii.gz",sep=''), 3)
+prior.csf     <- antsImageRead(paste(rootdir,"template/Labels/T1template_prior_01.nii.gz",sep=''), 3)
+prior.gm      <- antsImageRead(paste(rootdir,"template/Labels/T1template_prior_02.nii.gz",sep=''), 3)
+prior.wm      <- antsImageRead(paste(rootdir,"template/Labels/T1template_prior_03.nii.gz",sep=''), 3)
 @
 
 \subsection{Segmenting the individual T1 with a template and co-registration between ASL and T1}
@@ -72,7 +74,7 @@ t1.n4 <- abpN4(img=t1,  intensityTruncation=c( 0.025, 0.999, 256 ) )
 t1.brainx <- abpBrainExtraction(img=t1.n4, tem=template, temmask = mask.cerebrum)
 
 
-if ( FALSE ) {
+if ( TRUE ) {
 # you can redo the registration if you want, using only the brain but for this example, 
 # we can use the transforms computed by the brain extraction step
 # transform.t12template <- suppressMessages(antsRegistration(
@@ -169,9 +171,7 @@ After obtaining the requisite masks, we can compute perfusion and CBF from the r
 <<computePerfusion>>=
 pcasl.processing <- aslPerfusion(pcasl, mask=pcaslmask,moreaccurate=FALSE )
 # in above, we should truncate outliers or add a 2nd filter / function to do so
-
 pcasl.perfusion <- pcasl.processing$perfusion
-
 @
 
 Now you can convert perfusion to CBF via standard quantification equations for your sequence.
@@ -197,7 +197,6 @@ As a starter show histograms of the CBF image measurements in CSF, GM, WM
 
 
 <<getAAL>>=
-aal      <- antsImageRead("../data/template/Labels/aal.nii.gz", 3)
 aal2t1<-antsApplyTransforms( fixed=t1,moving=aal,interpolator="NearestNeighbor",t=t1.brainx$invtransforms )
 # transform this to the perfusion space and mask with the same mask
 # used for cbf .... or subset the matrix with the appropriate aal labels
