@@ -54,9 +54,11 @@ m0            <- antsImageRead(paste(rootdir,"M0.nii.gz",sep=''), 3)
 pasl          <- antsImageRead(paste(rootdir,"PASL.nii.gz",sep=''), 4)
 pcasl         <- antsImageRead(paste(rootdir,"PCASL.nii.gz",sep=''), 4)
 # pcasl         <- antsImageRead(paste(rootdir,"109896_20100617_0005_ep2d_se_pcasl_PHC_1500ms.nii.gz",sep=''), 4)
+pcasl         <- antsImageRead(paste(rootdir,"PEDS012_20100813_pcasl_1.nii.gz",sep=''), 4)
 casl          <- antsImageRead(paste(rootdir,"CASL.nii.gz",sep=''), 4)
 t1            <- antsImageRead(paste(rootdir,"t1.nii.gz",sep=''), 3)
 # t1            <- antsImageRead(paste(rootdir,"109896_20100617_mprage_t1.nii.gz",sep=''), 3)
+t1            <- antsImageRead(paste(rootdir,"PEDS012_20100813_mprage_t1.nii.gz",sep=''), 3)
 template      <- antsImageRead(paste(rootdir,"template/T1template.nii.gz",sep=''), 3)
 mask.cerebrum <- antsImageRead(paste(rootdir,"template/Labels/T1template_cerebrummask.nii.gz",sep=''), 3)
 prior.csf     <- antsImageRead(paste(rootdir,"template/Labels/T1template_prior_01.nii.gz",sep=''), 3)
@@ -190,6 +192,14 @@ Once we have perfusion in the subject space (or CBF), we may want to
 estimate partial volume correction to assign the degree to which CBF
 is determined by the underlying brain structure.  This can be a key to
 separating structural and functional signatures of disease.
+
+
+<<PVC>>=
+gm<-prob2warped
+wm<-prob3warped
+pcbf<-partialVolumeCorrection( cbf.warped2t1, gm, wm )
+antsImageWrite(pcbf,'pcbf.nii.gz')
+@ 
 
 \subsection{Quality Control Measurements}
 
