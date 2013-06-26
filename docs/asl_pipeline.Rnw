@@ -211,6 +211,9 @@ aal2t1<-antsApplyTransforms( fixed=t1,moving=aal,interpolator="NearestNeighbor",
 # transform this to the perfusion space and mask with the same mask
 # used for cbf .... or subset the matrix with the appropriate aal labels
 # then do some network biz
+concatenatedtx<-c(  unlist( t1.brainx$invtransforms ),  unlist( transform.asl2t1$invtransforms ) )
+aal2asl <- antsApplyTransforms( moving=aal, fixed=avgpcasl, interpolator="NearestNeighbor",
+                      t=concatenatedtx )
 @
 
 Now use these to look at cbf variation in different tissue.
@@ -236,6 +239,13 @@ plot the temporal SD image
 \subsection{Network analysis}
 
 do a quick study of some common networks - salience, DMN, etc
+
+
+<<cbfNetwork>>=
+mask<-pcasl.processing$mask
+mynetwork<-filterfMRIforNetworkAnalysis( pcasl.processing$aslTimeSeries , tr=4, mask=mask ,cbfnetwork = "ASLCBF", labels = aal2asl , graphdensity = 0.05 )
+plot( bb$graph$walktrapcomm, mynetwork$graph$mygraph )
+@
 
 \subsection{Population Analysis}
 
