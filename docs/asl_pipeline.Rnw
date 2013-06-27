@@ -46,35 +46,53 @@ This workflow begins with raw ASL and T1 nifti images as input.  So, we need spa
 
 
 First, we load in the input data.
-<<load>>=
+<<load,results="hide">>=
+
 suppressMessages(require(ANTsR))
-rootdir<-"./data/"
+opts_knit$set(progress = TRUE, verbose = TRUE)
+rootdir<-"../data/"
 aal           <- antsImageRead(paste(rootdir,"template/Labels/aal.nii.gz",sep=''), 3)
 m0            <- antsImageRead(paste(rootdir,"M0.nii.gz",sep=''), 3)
 pasl          <- antsImageRead(paste(rootdir,"PASL.nii.gz",sep=''), 4)
 pcasl         <- antsImageRead(paste(rootdir,"PCASL.nii.gz",sep=''), 4)
-# pcasl         <- antsImageRead(paste(rootdir,"109896_20100617_0005_ep2d_se_pcasl_PHC_1500ms.nii.gz",sep=''), 4)
 pcasl         <- antsImageRead(paste(rootdir,"PEDS012_20100813_pcasl_1.nii.gz",sep=''), 4)
+# pcasl         <- antsImageRead(paste(rootdir,"109896_20100617_0005_ep2d_se_pcasl_PHC_1500ms.nii.gz",sep=''), 4)
 casl          <- antsImageRead(paste(rootdir,"CASL.nii.gz",sep=''), 4)
 t1            <- antsImageRead(paste(rootdir,"t1.nii.gz",sep=''), 3)
-# t1            <- antsImageRead(paste(rootdir,"109896_20100617_mprage_t1.nii.gz",sep=''), 3)
 t1            <- antsImageRead(paste(rootdir,"PEDS012_20100813_mprage_t1.nii.gz",sep=''), 3)
+# t1            <- antsImageRead(paste(rootdir,"109896_20100617_mprage_t1.nii.gz",sep=''), 3)
 template      <- antsImageRead(paste(rootdir,"template/T1template.nii.gz",sep=''), 3)
 mask.cerebrum <- antsImageRead(paste(rootdir,"template/Labels/T1template_cerebrummask.nii.gz",sep=''), 3)
 prior.csf     <- antsImageRead(paste(rootdir,"template/Labels/T1template_prior_01.nii.gz",sep=''), 3)
 prior.gm      <- antsImageRead(paste(rootdir,"template/Labels/T1template_prior_02.nii.gz",sep=''), 3)
 prior.wm      <- antsImageRead(paste(rootdir,"template/Labels/T1template_prior_03.nii.gz",sep=''), 3)
+
 @
 
 \subsection{Segmenting the individual T1 with a template and co-registration between ASL and T1}
 
 
 Before we do any ASL processing, we have to do appropriate preprocessing (bias correction, brain extraction, and segmentation) of the T1 image. 
-<<preprocess,results="hide">>=
-mydir <- paste(tempdir(),"/Z", sep='')
-t1.n4 <- abpN4(img=t1,  intensityTruncation=c( 0.025, 0.999, 256 ) )
-t1.brainx <- abpBrainExtraction(img=t1.n4, tem=template, temmask = mask.cerebrum)
 
+<<preprocessN4,results="hide">>=
+
+mydir <- paste("./Z", sep='')
+t1.n4 <- abpN4(img=t1,  intensityTruncation=c( 0.025, 0.999, 256 ) )
+
+@ 
+
+Now the brain extraction 
+
+<<preprocessBXT,results="hide">>=
+
+t1.brainx <- abpBrainExtraction(img=t1, tem=template, temmask = mask.cerebrum)
+
+@
+
+
+Better segmentation and bias correction.
+
+<<betterSegment,results="hide">>=
 
 if ( TRUE ) {
 # you can redo the registration if you want, using only the brain but for this example, 
@@ -103,8 +121,8 @@ segs <- Atropos(d = 3, a = brain, m = "[0.1,1x1x1]", c = "[25,0]",
     i = probabilityimages, x =  t1.brainx$bmask , priorweight = 0.33 )
 t1.brainx$kmeansseg<-segs$segmentation
 }
-@
 
+@ 
 
 Now, we get an affine registration from the M0 image to the T1 image and a deformable registration from the T1 image to the template so that we can use the template cerebrum mask, if desired. 
 
@@ -170,20 +188,25 @@ subject-specific effects on CBF (e.g. measurements of T1 relaxation
 time in blood \cite{Varsha}) which we may implement in the future.  
 
 After obtaining the requisite masks, we can compute perfusion and CBF from the raw ASL images.  All necessary steps, including motion correction, detrending, and regression of physiological confounds are done automatically.
-<<computePerfusion>>=
+
+<<computePerfusion,results="hide">>=
+
 pcasl.processing <- aslPerfusion(pcasl, mask=pcaslmask,moreaccurate=FALSE )
 # in above, we should truncate outliers or add a 2nd filter / function to do so
 pcasl.perfusion <- pcasl.processing$perfusion
+
 @
 
 Now you can convert perfusion to CBF via standard quantification equations for your sequence.
 
-<<quantCBF>>=
+<<quantCBF,results="hide">>=
+
 pcasl.parameters <- list( sequence="pcasl", m0=pcasl.processing$m0 )
 cbf <- quantifyCBF( pcasl.perfusion, pcaslmask, pcasl.parameters )
 cbf.warped2template <- antsApplyTransforms( template, cbf$meancbf,
                         transformlist=concatenatedtx )
 cbf.warped2t1 <- antsApplyTransforms( fixed=t1, moving=cbf$meancbf, transformlist=c(unlist(transform.asl2t1$fwdtransforms ) ))
+
 @
 
 \subsection{PVC}
@@ -194,11 +217,13 @@ is determined by the underlying brain structure.  This can be a key to
 separating structural and functional signatures of disease.
 
 
-<<PVC>>=
+<<PVC,results="hide">>=
+
 gm<-prob2warped
 wm<-prob3warped
 pcbf<-partialVolumeCorrection( cbf.warped2t1, gm, wm )
 antsImageWrite(pcbf,'pcbf.nii.gz')
+
 @ 
 
 \subsection{Quality Control Measurements}
@@ -206,7 +231,8 @@ antsImageWrite(pcbf,'pcbf.nii.gz')
 As a starter show histograms of the CBF image measurements in CSF, GM, WM
 
 
-<<getAAL>>=
+<<getAAL,results="hide">>=
+
 aal2t1<-antsApplyTransforms( fixed=t1,moving=aal,interpolator="NearestNeighbor",t=t1.brainx$invtransforms )
 # transform this to the perfusion space and mask with the same mask
 # used for cbf .... or subset the matrix with the appropriate aal labels
@@ -214,11 +240,13 @@ aal2t1<-antsApplyTransforms( fixed=t1,moving=aal,interpolator="NearestNeighbor",
 concatenatedtx<-c(  unlist( t1.brainx$invtransforms ),  unlist( transform.asl2t1$invtransforms ) )
 aal2asl <- antsApplyTransforms( moving=aal, fixed=avgpcasl, interpolator="NearestNeighbor",
                       t=concatenatedtx )
+
 @
 
 Now use these to look at cbf variation in different tissue.
 
-<<qcCBF>>=
+<<qcCBF,results="hide">>=
+
   tmask<-antsImageClone(t1.brainx$kmeansseg)
   tmask[ t1.brainx$kmeansseg != 2 ]<-0
   tmask[ t1.brainx$kmeansseg == 2 ]<-1
@@ -230,9 +258,16 @@ Now use these to look at cbf variation in different tissue.
   ImageMath(3,tmaskf,"GetLargestComponent",tmaskf)
   tmask<-antsImageClone(tmaskf,"unsigned int")
   qcvaluesw<-getROIValues( cbf.warped2t1, tmask, tmask)
-  print(paste("Mean GM",mean( qcvaluesg$roiMeans ),"Mean WM",mean( qcvaluesw$roiMeans )))
+
 @
 
+
+
+<<meanCBF>>=
+
+print(paste("Mean GM",mean( qcvaluesg$roiMeans ),"Mean WM",mean( qcvaluesw$roiMeans )))
+
+@ 
 
 plot the temporal SD image 
 
@@ -242,9 +277,11 @@ do a quick study of some common networks - salience, DMN, etc
 
 
 <<cbfNetwork>>=
+
 mask<-pcasl.processing$mask
 mynetwork<-filterfMRIforNetworkAnalysis( pcasl.processing$aslTimeSeries , tr=4, mask=mask ,cbfnetwork = "ASLCBF", labels = aal2asl , graphdensity = 0.05 )
-plot( bb$graph$walktrapcomm, mynetwork$graph$mygraph )
+plot( mynetwork$graph$walktrapcomm, mynetwork$graph$mygraph )
+
 @
 
 \subsection{Population Analysis}
