@@ -56,11 +56,11 @@ m0            <- antsImageRead(paste(rootdir,"M0.nii.gz",sep=''), 3)
 pasl          <- antsImageRead(paste(rootdir,"PASL.nii.gz",sep=''), 4)
 pcasl         <- antsImageRead(paste(rootdir,"PCASL.nii.gz",sep=''), 4)
 pcasl         <- antsImageRead(paste(rootdir,"PEDS012_20100813_pcasl_1.nii.gz",sep=''), 4)
-# pcasl         <- antsImageRead(paste(rootdir,"109896_20100617_0005_ep2d_se_pcasl_PHC_1500ms.nii.gz",sep=''), 4)
+pcasl         <- antsImageRead(paste(rootdir,"109896_20100617_0005_ep2d_se_pcasl_PHC_1500ms.nii.gz",sep=''), 4)
 casl          <- antsImageRead(paste(rootdir,"CASL.nii.gz",sep=''), 4)
 t1            <- antsImageRead(paste(rootdir,"t1.nii.gz",sep=''), 3)
 t1            <- antsImageRead(paste(rootdir,"PEDS012_20100813_mprage_t1.nii.gz",sep=''), 3)
-# t1            <- antsImageRead(paste(rootdir,"109896_20100617_mprage_t1.nii.gz",sep=''), 3)
+t1            <- antsImageRead(paste(rootdir,"109896_20100617_mprage_t1.nii.gz",sep=''), 3)
 template      <- antsImageRead(paste(rootdir,"template/T1template.nii.gz",sep=''), 3)
 mask.cerebrum <- antsImageRead(paste(rootdir,"template/Labels/T1template_cerebrummask.nii.gz",sep=''), 3)
 prior.csf     <- antsImageRead(paste(rootdir,"template/Labels/T1template_prior_01.nii.gz",sep=''), 3)
@@ -76,7 +76,8 @@ Before we do any ASL processing, we have to do appropriate preprocessing (bias c
 
 <<preprocessN4,results="hide">>=
 
-mydir <- paste("./Z", sep='')
+outdir <- paste("./Z/", sep='')
+dir.create(outdir)
 t1.n4 <- abpN4(img=t1,  intensityTruncation=c( 0.025, 0.999, 256 ) )
 
 @ 
@@ -85,7 +86,7 @@ Now the brain extraction
 
 <<preprocessBXT,results="hide">>=
 
-t1.brainx <- abpBrainExtraction(img=t1, tem=template, temmask = mask.cerebrum)
+t1.brainx <- abpBrainExtraction(img=t1, tem=template, temmask = mask.cerebrum , tdir = outdir )
 
 @
 
@@ -98,7 +99,7 @@ if ( TRUE ) {
 # you can redo the registration if you want, using only the brain but for this example, 
 # we can use the transforms computed by the brain extraction step
 # transform.t12template <- suppressMessages(antsRegistration(
-#  fixed=templatebrain, moving=t1.brainx$brain, "Affine", mydir))
+#  fixed=templatebrain, moving=t1.brainx$brain, "Affine", outdir))
 prob1warped <- antsApplyTransforms( t1.brainx$brain, prior.csf, 
                       transformlist=t1.brainx$invtransforms )
 prob2warped <- antsApplyTransforms( t1.brainx$brain, prior.gm, 
@@ -109,16 +110,16 @@ probabilityimages<-list( prob1warped, prob2warped  ,  prob3warped )
 # resegment with use of prior 
 brain<-antsImageClone( t1.brainx$brain )
 for ( its in 1:3 ) {
-  segs <- Atropos(d = 3, a = brain, m = "[0.1,1x1x1]", c = "[5,0]",
-    i = probabilityimages, x =  t1.brainx$bmask , priorweight = 0.5 )
+  segs <- Atropos(d = 3, a = brain, m = "[0.1,1x1x1]", c = "[25,0]",
+    i = probabilityimages, x =  t1.brainx$bmask , priorweight = 0.25 )
   mywmask<-antsImageClone( t1.brainx$bmask )
   ImageMath(3,mywmask,"+",segs$probabilityimages[[2]],segs$probabilityimages[[3]])
   brain<-abpN4( img = t1.brainx$brain , intensityTruncation=c( 0.01, 0.999, 256 )  ,
-        mask = t1.brainx$bmask , weightimg= mywmask )
+        mask = t1.brainx$bmask , weightimg= mywmask  )
   ImageMath(3, brain,'m', brain, t1.brainx$bmask)
 }
 segs <- Atropos(d = 3, a = brain, m = "[0.1,1x1x1]", c = "[25,0]",
-    i = probabilityimages, x =  t1.brainx$bmask , priorweight = 0.33 )
+    i = probabilityimages, x =  t1.brainx$bmask , priorweight = 0.0 )
 t1.brainx$kmeansseg<-segs$segmentation
 }
 
@@ -133,7 +134,7 @@ In the case of PCASL, we register to the average ASL image.
 avgpcasl<-new( "antsImage" , "float" , 3 )
 antsMotionCorr( list( d = 3 , a = pcasl , o = avgpcasl ) )
 plotANTsImage( avgpcasl, slices="1x14x2",axis=0)
-transform.asl2t1 <- suppressMessages(antsRegistration(t1.brainx$brain, avgpcasl, "Rigid", mydir))
+transform.asl2t1 <- suppressMessages(antsRegistration(t1.brainx$brain, avgpcasl, "Rigid", outdir ))
 concatenatedtx<-c(  unlist( t1.brainx$fwdtransforms ) , unlist( transform.asl2t1$fwdtransforms ) )
 pcasl.warped <- antsApplyTransforms( template, avgpcasl, 
                       transformlist=concatenatedtx )
@@ -148,6 +149,7 @@ antsApplyTransforms( list( d=3, i=t1.brainx$bmask,interpolator="NearestNeighbor"
 par( mfrow=c(2,1))
 plotANTsImage( avgpcasl , slices="1x14x2",axis=0)
 plotANTsImage( pcaslmask, slices="1x14x2",axis=0)
+
 @
 
 If the warped pcasl looks aligned with the template, then the brain extraction step and mapping between the average pcasl and t1 are ok.  The quality could be improved beyond this approach but this may be reasonable for many datasets.
@@ -283,6 +285,43 @@ mynetwork<-filterfMRIforNetworkAnalysis( pcasl.processing$aslTimeSeries , tr=4, 
 plot( mynetwork$graph$walktrapcomm, mynetwork$graph$mygraph )
 
 @
+
+Write out results.
+
+<<writeIt>>=
+
+fn<-paste(outdir,'brain.nii.gz',sep='')
+antsImageWrite( brain , fn )
+fn<-paste(outdir,'seg.nii.gz',sep='')
+antsImageWrite( segs$segmentation , fn )
+for ( i in 1:3 ) {
+  fn<-paste(outdir,'prob_0',i,'.nii.gz',sep='')
+  antsImageWrite( segs$probabilityimages[[i]] , fn )
+}
+#
+# write out asl data 
+#
+fn<-paste(outdir,'aal2asl.nii.gz',sep='')
+antsImageWrite( aal2asl , fn ) 
+fn<-paste(outdir,'asl_mask.nii.gz',sep='')
+antsImageWrite( pcaslmask , fn ) 
+myasldata <- data.frame( xideal = pcasl.processing$xideal , nuis = pcasl.processing$nuisancevariables )
+fn<-paste(outdir,'asl_data.csv',sep='')
+write.csv( myasldata, fn, quote=F, row.names=F )
+fn<-paste(outdir,'asl_timeseries.mha',sep='')
+antsImageWrite( as.antsImage( pcasl.processing$aslTimeSeries ) , fn )
+fn<-paste(outdir,'networkCorr.mha',sep='')
+antsImageWrite( as.antsImage(mynetwork$network) , fn )
+fn<-paste(outdir,'m0.nii.gz',sep='')
+antsImageWrite( pcasl.processing$m0 , fn ) 
+#                                        
+# cbf stuff
+#
+fn<-paste(outdir,'cbf.nii.gz',sep='')
+antsImageWrite( cbf$meancbf , fn ) 
+
+
+@ 
 
 \subsection{Population Analysis}
 
