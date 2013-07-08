@@ -51,7 +51,8 @@ First, we load in the input data.
 suppressMessages(require(ANTsR))
 opts_knit$set(progress = TRUE, verbose = TRUE)
 rootdir<-"../data/"
-aal           <- antsImageRead(paste(rootdir,"template/Labels/aal.nii.gz",sep=''), 3)
+data("aal", package="ANTsR")
+aalimg        <- antsImageRead(paste(rootdir,"template/Labels/aal.nii.gz",sep=''), 3)
 m0            <- antsImageRead(paste(rootdir,"M0.nii.gz",sep=''), 3)
 pasl          <- antsImageRead(paste(rootdir,"PASL.nii.gz",sep=''), 4)
 pcasl         <- antsImageRead(paste(rootdir,"PCASL.nii.gz",sep=''), 4)
@@ -235,12 +236,12 @@ As a starter show histograms of the CBF image measurements in CSF, GM, WM
 
 <<getAAL,results="hide">>=
 
-aal2t1<-antsApplyTransforms( fixed=t1,moving=aal,interpolator="NearestNeighbor",t=t1.brainx$invtransforms )
+aal2t1<-antsApplyTransforms( fixed=t1,moving=allimg,interpolator="NearestNeighbor",t=t1.brainx$invtransforms )
 # transform this to the perfusion space and mask with the same mask
 # used for cbf .... or subset the matrix with the appropriate aal labels
 # then do some network biz
 concatenatedtx<-c(  unlist( t1.brainx$invtransforms ),  unlist( transform.asl2t1$invtransforms ) )
-aal2asl <- antsApplyTransforms( moving=aal, fixed=avgpcasl, interpolator="NearestNeighbor",
+aal2asl <- antsApplyTransforms( moving=allimg, fixed=avgpcasl, interpolator="NearestNeighbor",
                       t=concatenatedtx )
 
 @
@@ -281,8 +282,18 @@ do a quick study of some common networks - salience, DMN, etc
 <<cbfNetwork>>=
 
 mask<-pcasl.processing$mask
-mynetwork<-filterfMRIforNetworkAnalysis( pcasl.processing$aslTimeSeries , tr=4, mask=mask ,cbfnetwork = "ASLCBF", labels = aal2asl , graphdensity = 0.05 )
+filterpcasl<-getfMRInuisanceVariables( pcasl, mask = mask , moreaccurate=F )
+tsResid<-residuals( lm( filterpcasl$matrixTimeSeries ~ filterpcasl$nuisancevariables + pcasl.processing$xideal ))
+mynetwork<-filterfMRIforNetworkAnalysis( tsResid , tr=4, mask=mask ,cbfnetwork = "ASLCBF", labels = aal2asl , graphdensity = 0.05 )
 plot( mynetwork$graph$walktrapcomm, mynetwork$graph$mygraph )
+
+# look at dmn
+data("aal", package="ANTsR")
+mydmn<-which( aal$isdmn == 1 )
+dmngraph1<-makeGraph( mynetwork$corrmat[ mydmn, mydmn ] , 0.25 )
+mydmn2<-which( aal$isdmn >= 1 )
+dmngraph2<-makeGraph( mynetwork$corrmat[ mydmn2, mydmn2 ] , 0.25 )
+
 
 @
 
