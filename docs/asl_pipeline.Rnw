@@ -236,12 +236,12 @@ As a starter show histograms of the CBF image measurements in CSF, GM, WM
 
 <<getAAL,results="hide">>=
 
-aal2t1<-antsApplyTransforms( fixed=t1,moving=allimg,interpolator="NearestNeighbor",t=t1.brainx$invtransforms )
+aal2t1<-antsApplyTransforms( fixed=t1,moving=aalimg,interpolator="NearestNeighbor",t=t1.brainx$invtransforms )
 # transform this to the perfusion space and mask with the same mask
 # used for cbf .... or subset the matrix with the appropriate aal labels
 # then do some network biz
 concatenatedtx<-c(  unlist( t1.brainx$invtransforms ),  unlist( transform.asl2t1$invtransforms ) )
-aal2asl <- antsApplyTransforms( moving=allimg, fixed=avgpcasl, interpolator="NearestNeighbor",
+aal2asl <- antsApplyTransforms( moving=aalimg, fixed=avgpcasl, interpolator="NearestNeighbor",
                       t=concatenatedtx )
 
 @
