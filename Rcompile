@@ -1,5 +1,6 @@
 #!/usr/bin/env Rscript
 library(knitr)
-knit('docs/asl_pipeline.Rnw')
+knit('docs/asl_pipeline.Rnw',tangle=TRUE)
+knit('docs/asl_pipeline.Rnw',tangle=FALSE)
 system('pdflatex asl_pipeline.tex')
 system('rm *log *aux *blg *tex')

@@ -46,7 +46,7 @@ This workflow begins with raw ASL and T1 nifti images as input.  So, we need spa
 
 
 First, we load in the input data.
-<<load,results="hide">>=
+<<load,results="hide",eval=FALSE>>=
 
 suppressMessages(require(ANTsR))
 opts_knit$set(progress = TRUE, verbose = TRUE)
@@ -75,7 +75,7 @@ prior.wm      <- antsImageRead(paste(rootdir,"template/Labels/T1template_prior_0
 
 Before we do any ASL processing, we have to do appropriate preprocessing (bias correction, brain extraction, and segmentation) of the T1 image. 
 
-<<preprocessN4,results="hide">>=
+<<preprocessN4,results="hide",eval=FALSE>>=
 
 outdir <- paste("./Z/", sep='')
 dir.create(outdir)
@@ -85,7 +85,7 @@ t1.n4 <- abpN4(img=t1,  intensityTruncation=c( 0.025, 0.999, 256 ) )
 
 Now the brain extraction 
 
-<<preprocessBXT,results="hide">>=
+<<preprocessBXT,results="hide",eval=FALSE>>=
 
 t1.brainx <- abpBrainExtraction(img=t1, tem=template, temmask = mask.cerebrum , tdir = outdir )
 
@@ -94,7 +94,7 @@ t1.brainx <- abpBrainExtraction(img=t1, tem=template, temmask = mask.cerebrum , 
 
 Better segmentation and bias correction.
 
-<<betterSegment,results="hide">>=
+<<betterSegment,results="hide",eval=FALSE>>=
 
 if ( TRUE ) {
 # you can redo the registration if you want, using only the brain but for this example, 
@@ -130,7 +130,7 @@ Now, we get an affine registration from the M0 image to the T1 image and a defor
 
 In the case of PCASL, we register to the average ASL image.
 
-<<register,results="hide">>=
+<<register,results="hide",eval=FALSE>>=
 
 avgpcasl<-new( "antsImage" , "float" , 3 )
 antsMotionCorr( list( d = 3 , a = pcasl , o = avgpcasl ) )
@@ -192,7 +192,7 @@ time in blood \cite{Varsha}) which we may implement in the future.
 
 After obtaining the requisite masks, we can compute perfusion and CBF from the raw ASL images.  All necessary steps, including motion correction, detrending, and regression of physiological confounds are done automatically.
 
-<<computePerfusion,results="hide">>=
+<<computePerfusion,results="hide",eval=FALSE>>=
 
 pcasl.processing <- aslPerfusion(pcasl, mask=pcaslmask,moreaccurate=FALSE )
 # in above, we should truncate outliers or add a 2nd filter / function to do so
@@ -202,7 +202,7 @@ pcasl.perfusion <- pcasl.processing$perfusion
 
 Now you can convert perfusion to CBF via standard quantification equations for your sequence.
 
-<<quantCBF,results="hide">>=
+<<quantCBF,results="hide",eval=FALSE>>=
 
 pcasl.parameters <- list( sequence="pcasl", m0=pcasl.processing$m0 )
 cbf <- quantifyCBF( pcasl.perfusion, pcaslmask, pcasl.parameters )
@@ -220,7 +220,7 @@ is determined by the underlying brain structure.  This can be a key to
 separating structural and functional signatures of disease.
 
 
-<<PVC,results="hide">>=
+<<PVC,results="hide",eval=FALSE>>=
 
 gm<-prob2warped
 wm<-prob3warped
@@ -234,7 +234,7 @@ antsImageWrite(pcbf,'pcbf.nii.gz')
 As a starter show histograms of the CBF image measurements in CSF, GM, WM
 
 
-<<getAAL,results="hide">>=
+<<getAAL,results="hide",eval=FALSE>>=
 
 aal2t1<-antsApplyTransforms( fixed=t1,moving=aalimg,interpolator="NearestNeighbor",t=t1.brainx$invtransforms )
 # transform this to the perfusion space and mask with the same mask
@@ -248,7 +248,7 @@ aal2asl <- antsApplyTransforms( moving=aalimg, fixed=avgpcasl, interpolator="Nea
 
 Now use these to look at cbf variation in different tissue.
 
-<<qcCBF,results="hide">>=
+<<qcCBF,results="hide",eval=FALSE>>=
 
   tmask<-antsImageClone(t1.brainx$kmeansseg)
   tmask[ t1.brainx$kmeansseg != 2 ]<-0
@@ -266,7 +266,7 @@ Now use these to look at cbf variation in different tissue.
 
 
 
-<<meanCBF>>=
+<<meanCBF,eval=FALSE>>=
 
 print(paste("Mean GM",mean( qcvaluesg$roiMeans ),"Mean WM",mean( qcvaluesw$roiMeans )))
 
@@ -279,7 +279,7 @@ plot the temporal SD image
 do a quick study of some common networks - salience, DMN, etc
 
 
-<<cbfNetwork>>=
+<<cbfNetwork,eval=FALSE>>=
 
 mask<-pcasl.processing$mask
 filterpcasl<-getfMRInuisanceVariables( pcasl, mask = mask , moreaccurate=F )
@@ -299,7 +299,7 @@ dmngraph2<-makeGraph( mynetwork$corrmat[ mydmn2, mydmn2 ] , 0.25 )
 
 Write out results.
 
-<<writeIt>>=
+<<writeIt,eval=FALSE>>=
 
 fn<-paste(outdir,'brain.nii.gz',sep='')
 antsImageWrite( brain , fn )
