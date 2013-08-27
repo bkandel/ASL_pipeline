@@ -41,12 +41,7 @@ This workflow begins with raw ASL and T1 nifti images as input.  So, we need spa
   
   
 
-\paragraph{Not yet implemented: quantitative cbf - ask jeff}
-\paragraph{Not yet implemented: quantitative control - think about this}
-
-
-First, we load in the input data.
-<<load,results="hide",eval=FALSE>>=
+<<oldload,results="hide",eval=FALSE,echo=FALSE>>=
 
 suppressMessages(require(ANTsR))
 opts_knit$set(progress = TRUE, verbose = TRUE)
@@ -61,6 +56,25 @@ pcasl         <- antsImageRead(paste(rootdir,"109896_20100617_0005_ep2d_se_pcasl
 casl          <- antsImageRead(paste(rootdir,"CASL.nii.gz",sep=''), 4)
 t1            <- antsImageRead(paste(rootdir,"t1.nii.gz",sep=''), 3)
 t1            <- antsImageRead(paste(rootdir,"PEDS012_20100813_mprage_t1.nii.gz",sep=''), 3)
+t1            <- antsImageRead(paste(rootdir,"109896_20100617_mprage_t1.nii.gz",sep=''), 3)
+template      <- antsImageRead(paste(rootdir,"template/T1template.nii.gz",sep=''), 3)
+mask.cerebrum <- antsImageRead(paste(rootdir,"template/Labels/T1template_cerebrummask.nii.gz",sep=''), 3)
+prior.csf     <- antsImageRead(paste(rootdir,"template/Labels/T1template_prior_01.nii.gz",sep=''), 3)
+prior.gm      <- antsImageRead(paste(rootdir,"template/Labels/T1template_prior_02.nii.gz",sep=''), 3)
+prior.wm      <- antsImageRead(paste(rootdir,"template/Labels/T1template_prior_03.nii.gz",sep=''), 3)
+
+@
+
+
+First, we load in the input data.
+<<load,results="hide",eval=FALSE>>=
+
+suppressMessages(require(ANTsR))
+opts_knit$set(progress = TRUE, verbose = TRUE)
+rootdir<-"../data/"
+data("aal", package="ANTsR")
+aalimg        <- antsImageRead(paste(rootdir,"template/Labels/aal.nii.gz",sep=''), 3)
+pcasl         <- antsImageRead(paste(rootdir,"109896_20100617_0005_ep2d_se_pcasl_PHC_1500ms.nii.gz",sep=''), 4)
 t1            <- antsImageRead(paste(rootdir,"109896_20100617_mprage_t1.nii.gz",sep=''), 3)
 template      <- antsImageRead(paste(rootdir,"template/T1template.nii.gz",sep=''), 3)
 mask.cerebrum <- antsImageRead(paste(rootdir,"template/Labels/T1template_cerebrummask.nii.gz",sep=''), 3)
@@ -163,24 +177,21 @@ Given the inputs listed above, the pipeline will estimate perfusion from an ASL 
   \item Motion  correction.
   \item Masking the ASL image, possibly by using the T1 mask and
     coregistration with T1.
-  \item Find nuisance variables such as global signal (FIXME --- optional
-    maybe we should change the code to make this explicit)
+  \item Find nuisance variables such as global signal (FIXME ---need
+    to list the defaults explicitly)
     and compcor summary of physiological confounds (FIXME should probably test
     compcor again or show its output in this doc)
     \item At this point, if doing network analysis, we would use one
       of the approaches described in \cite{Wong97,Weber2013}.   Sinc interpolation.
    \item Employ linear regression to estimate the mean perfusion itself
-     while controlling for the nuisance variables.  (FIXME - how to
-     set robustness parameter , noted briefly )
+     while controlling for the nuisance variables.  (FIXME - tell user
+     how to set robustness parameter , noted briefly )
    \item Currently, the ANTsR function aslPerfusion will estimate the m0 image from
      the mean of the control tags assuming that the data is acquired T
      C T C as is most of JJ's data.   This is applicable for
      CASL/PCASL but PASL requires a separately acquired M0.  FIXME ---
      The function should support both operations maskThresh should be maskOption
-     \item FIXME --- This function should also alternatively take a mask in from
-       the user which defines where mean perfusion will be calculated (e.g. you
-       dont want to compute it in background). 
-   \end{itemize}
+  \end{itemize}
 The output of these steps is the mean perfusion image adjusted for
 the user-selected covariates.  All of the above steps are implemented in aslPerfusion in ANTsR. Once
 complete, quantitative CBF can be obtained by mutiplying the output of
