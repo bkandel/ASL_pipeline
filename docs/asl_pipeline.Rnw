@@ -5,10 +5,24 @@
 \maketitle
 
 \section{Introduction}
+Arterial spin labeled (ASL) perfusion MRI allows noninvasive quantification of regional cerebral blood flow (CBF).  Because CBF is coupled to regional neural activity under most circumstances, ASL CBF can be used to quantify brain activity at rest or in response to cognitive tasks or pharmacological modulation.  ASL CBF is therefore a versatile biomarker of regional brain function and alterations in brain function caused by brain disorders and their treatments.
 
-ASL is important (see FNIH proposal)
+A growing body of evidence demonstrates the feasibility and utility of ASL MRI as a quantitative measure of brain function in neurological and psychiatric diseases, as well as in healthy subjects. For example, in Alzheimer’s disease ASL provides comparable information to FDG-PET but at a lower cost and without radiation exposure.  Several studies have also demonstrated the utility and potential of ASL MRI as a pharmacodynamic biomarker capable of detecting region-specific pharmacological effects, including dose responses.
 
-We want to test a pipeline for ASL and CBF in neurodegeneration.
+ASL MRI is now being obtained in a number of large neuroimaging studies, including the FNIH-sponsored Alzheimer’s Disease Neuroimaging Initiative (ADNI) study.  However, ASL MRI sequences and processing strategies are less standardized  than those for structural MRI or even blood-oxygen-level-dependent (BOLD) MRI and, for logistical reasons, large multisite studies are not always able to incorporate the most robust and sensitive ASL MRI acquisition methods since many of these approaches remain experimental and require physics support to implement them.
+ 
+Most ASL MRI data are acquired as time series with repeated alternation of arterial spin labeled and control brain volumes.  These successive label/control pairs are typically subtracted and signal averaged to derive a mean CBF map.  CBF quantification using this pairwise subtraction process can be problematic because the signal difference is typically very small, and head motion or other artifacts can significantly degrade quantification. Developing advanced processing methods represent an as-yet poorly exploited opportunity to maximize the value of ASL data acquired in costly clinical trials and imaging biomarker projects such as ADNI2.
+
+This project will develop and validate advanced signal processing strategies needed to derive maximal benefit from ASL MRI data acquired in projects such as ADNI, which is based on Siemens product (pulsed ASL (PASL)), the National Heart, Lung and Blood Institute (NHLBI) Coronary Artery Risk Development in Young Adults (CARDIA), which includes pulsed continuous ASL (PCASL) on Siemens and Philips platforms, and the NIH-funded Systolic Blood Pressure Intervention Trial Memory and cognition In Decreased hypertension (SPRINT-MIND), which focuses on hypertension control and includes ASL MRI data from GE (background-suppressed PCASL), Siemens (PCASL), and Philips (PCASL) platforms.  A listing of available data is provided in Table 1. The resulting procedures will be combined into an optimized signal processing ``pipeline'' tailored to the specific properties ASL data that will include procedures for data verification, data cleaning and rejection, spatiotemporal filtering, CBF estimation, spatial normalization, and ROI extraction.  The resulting software will be shared with the research community and will provide an important advance towards realization of the full potential of ASL MRI technique in clinical research and practice. This signal processing pipeline will be implemented in user-friendly software.  It will be free, open source, and documented with a user-modifiable web document (``wiki'').  The validated methods and resulting software for signal processing of ASL data will also be of broad value to the use of ASL MRI as a biomarker of brain function in neurological and psychiatric disorders and as a biomarker of drug actions in early phase clinical trials.
+
+
+In this work, we detail the construction and validation of an ASL processing pipeline, with special attention paid to aspects of the pipeline that make it suitable for large-scale neuroimaging studies.  In particular, the following aspects of the pipeline make it useful and distinct from previously available ASL processing pipelines: 
+\begin{itemize}
+\item User-friendly quality assurance (QA) tools to facilitate inspection of input data
+\item Integrated structural analysis (segmentation, registration to T1 images, cortical thickness measurement, etc.) to enable relation of ASL measurements to anatomical space 
+\item Fully automated pipeline to allow ASL population studies with minimal manual overhead
+\item Integrated partial volume correction as an optional post-processing step
+\end{itemize}
 
 Technical details of ASL reconstruction are covered in the
 following excellent papers:
