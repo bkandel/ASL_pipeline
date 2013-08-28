@@ -19,7 +19,7 @@ This project will develop and validate advanced signal processing strategies nee
 In this work, we detail the construction and validation of an ASL processing pipeline, with special attention paid to aspects of the pipeline that make it suitable for large-scale neuroimaging studies.  In particular, the following aspects of the pipeline make it useful and distinct from previously available ASL processing pipelines: 
 \begin{itemize}
 \item User-friendly quality assurance (QA) tools to facilitate inspection of input data
-\item Integrated structural analysis (segmentation, registration to T1 images, cortical thickness measurement, etc.) to enable relation of ASL measurements to anatomical space 
+\item Integrated structural analysis (segmentation, registration to T1 images, cortical thickness measurement, etc.) to enable relation of ASL measurements to anatomical space, including ROI-based data summaries
 \item Fully automated pipeline to allow ASL population studies with minimal manual overhead
 \item Integrated partial volume correction as an optional post-processing step
 \end{itemize}
@@ -173,8 +173,8 @@ plotANTsImage( pcasl.warped  , slices="60x120x10", axis=0 )
 
 # also get the t1 brain extraction mask into the space of the asl
 pcaslmask<-new( "antsImage" , "float" , 3 )
-antsApplyTransforms( list( d=3, i=t1.brainx$bmask,interpolator="NearestNeighbor",
-  o=pcaslmask,r=avgpcasl,t=paste("[",transform.asl2t1$invtransforms[1],",1]",sep='') ) )
+pcaslmask <- antsApplyTransforms(fixed=avgpcasl, moving=t1.brainx$bmask, 
+        transformlist=transform.asl2t1$invtransforms[1], interpolator="NearestNeighbor")
 par( mfrow=c(2,1))
 plotANTsImage( avgpcasl , slices="1x14x2",axis=0)
 plotANTsImage( pcaslmask, slices="1x14x2",axis=0)
