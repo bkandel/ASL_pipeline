@@ -116,12 +116,9 @@ cbfvals.gm <- getROIValues(cbf.warped2template, lab, gm.mask)
 cbfvals.wm <- getROIValues(cbf.warped2template, lab, wm.mask)
 
 ####### Write out images. #####
-antsImageWrite(t1.n4, paste(outdir, '/', opt$prefix, 'T1BiasCorrected.nii.gz', sep=''))
 antsImageWrite(cbf.warped2template, 
                paste(outdir, '/', opt$prefix, 'MeanCBFWarpedToTemplate.nii.gz',
                                           sep=''))
-antsImageWrite(segs$segmentation, 
-               paste(outdir,'/', opt$prefix, 'Segmentation.nii.gz', sep=''))
 antsImageWrite(cbf$meancbf, paste(outdir, '/', opt$prefix, 'MeanCBF.nii.gz', sep=''))
 
 myvals <- data.frame(GMVals=cbfvals.gm$roiMeans, WMVals=cbfvals.wm$roiMeans)
