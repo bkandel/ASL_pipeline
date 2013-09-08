@@ -88,7 +88,7 @@ plotANTsImage( pcasl.warped  , slices="60x120x10", axis=0,
                outname=paste(outdir, '/pcasl_warped.png', sep=''))
 # also get the t1 brain extraction mask into the space of the asl
 pcaslmask<-new( "antsImage" , "float" , 3 )
-pcaslmask <- antsApplyTransforms(fixed=avgpcasl, moving=t1.brain$bmask,
+pcaslmask <- antsApplyTransforms(fixed=avgpcasl, moving=mask,
          transformlist=transform.asl2t1$invtransforms[1], interpolator="NearestNeighbor")
 par( mfrow=c(2,1))
 plotANTsImage( pcaslmask, slices="1x14x2",axis=0, 
