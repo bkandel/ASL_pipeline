@@ -77,7 +77,7 @@ plotANTsImage( avgpcasl, slices="1x14x2",axis=0,
 transform.asl2t1 <- suppressMessages(antsRegistration(t1, 
                                                       avgpcasl, "Rigid", outdir))
 ## should probably do something more like what we do in antsIntermodalityIntersubject.sh
-concatenatedtx<-c(opt$tmpl2t1deform, opt$tmpl2affine,
+concatenatedtx<-c(opt$tmplt2t1deform, opt$tmplt2t1affine,
                   unlist( transform.asl2t1$fwdtransforms ) )
 print(paste('Concatenated transform list is:', concatenatedtx))
 pcasl.warped <- antsApplyTransforms(fixed=template, moving=avgpcasl,
