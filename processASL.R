@@ -77,7 +77,7 @@ plotANTsImage( avgpcasl, slices="1x14x2",axis=0,
 transform.asl2t1 <- suppressMessages(antsRegistration(t1, 
                                                       avgpcasl, "Rigid", outdir))
 ## should probably do something more like what we do in antsIntermodalityIntersubject.sh
-concatenatedtx<-c(opt$tmpl2t1affine, opt$tmpl2t1deform,
+concatenatedtx<-c(opt$tmpl2t1deform, opt$tmpl2affine,
                   unlist( transform.asl2t1$fwdtransforms ) )
 pcasl.warped <- antsApplyTransforms(fixed=template, moving=avgpcasl,
                        transformlist=concatenatedtx )
@@ -98,8 +98,6 @@ pcasl.processing <- aslPerfusion(pcasl, mask=pcaslmask, moreaccurate=FALSE )
 # in above, we should truncate outliers or add a 2nd filter / function to do so
 pcasl.perfusion <- pcasl.processing$perfusion
 
-
-
 pcasl.parameters <- list( sequence="pcasl", m0=pcasl.processing$m0 )
 cbf <- quantifyCBF( pcasl.perfusion, pcaslmask, pcasl.parameters )
 cbf.warped2template <- antsApplyTransforms( template, cbf$meancbf,
@@ -119,6 +117,8 @@ cbfvals.wm <- getROIValues(cbf.warped2template, lab, wm.mask)
 antsImageWrite(cbf.warped2template, 
                paste(outdir, '/', opt$prefix, 'MeanCBFWarpedToTemplate.nii.gz',
                                           sep=''))
+antsImageWrite(cbf.warped2t1, 
+    paste(outdir, '/', opt$prefix, 'MeanCBFWarpedToT1.nii.gz', sep=''))
 antsImageWrite(cbf$meancbf, paste(outdir, '/', opt$prefix, 'MeanCBF.nii.gz', sep=''))
 
 myvals <- data.frame(GMVals=cbfvals.gm$roiMeans, WMVals=cbfvals.wm$roiMeans)
