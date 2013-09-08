@@ -79,6 +79,7 @@ transform.asl2t1 <- suppressMessages(antsRegistration(t1,
 ## should probably do something more like what we do in antsIntermodalityIntersubject.sh
 concatenatedtx<-c(opt$tmpl2t1deform, opt$tmpl2affine,
                   unlist( transform.asl2t1$fwdtransforms ) )
+print(paste('Concatenated transform list is:', concatenatedtx))
 pcasl.warped <- antsApplyTransforms(fixed=template, moving=avgpcasl,
                        transformlist=concatenatedtx )
 par( mfrow=c(2,1))
