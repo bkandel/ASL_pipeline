@@ -74,7 +74,7 @@ avgpcasl<-new( "antsImage" , "float" , 3 )
 antsMotionCorr( list( d = 3 , a = pcasl , o = avgpcasl ) )
 plotANTsImage( avgpcasl, slices="1x14x2",axis=0, 
                outname=paste(outdir, '/avg_pcasl.png', sep=''))
-transform.asl2t1 <- suppressMessages(antsRegistration(t1.brain$brain, 
+transform.asl2t1 <- suppressMessages(antsRegistration(t1, 
                                                       avgpcasl, "Rigid", outdir))
 ## should probably do something more like what we do in antsIntermodalityIntersubject.sh
 concatenatedtx<-c(opt$tmpl2t1affine, opt$tmpl2t1deform,
