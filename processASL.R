@@ -43,32 +43,6 @@ csf      <- antsImageRead(opt$csfImage, opt$dim)
 mask     <- antsImageRead(opt$mask, opt$dim)
 outdir   <- opt$outdir
 
-##### Preprocessing of T1 image. ####
-# t1.n4 <- abpN4(img=t1, intensityTruncation=c( 0.025, 0.999, 256 ))
-# t1.brain <- abpBrainExtraction(img=t1.n4, tem=template, 
-#                                temmask=mask , tdir=outdir)
-# prob1warped <- antsApplyTransforms( t1.brain$brain, csf,
-#                        transformlist=t1.brain$invtransforms )
-# prob2warped <- antsApplyTransforms( t1.brain$brain, gm,
-#                        transformlist=t1.brain$invtransforms )
-# prob3warped <- antsApplyTransforms( t1.brain$brain, wm,
-#                        transformlist=t1.brain$invtransforms )
-# probabilityimages<-list( prob1warped, prob2warped,  prob3warped )
-# # resegment with use of prior
-# brain<-antsImageClone( t1.brain$brain )
-# for ( its in 1:3 ) {
-#    segs <- Atropos(d = 3, a = brain, m = "[0.1,1x1x1]", c = "[25,0]",
-#      i = probabilityimages, x =  t1.brain$bmask , priorweight = 0.25 )
-#    mywmask<-antsImageClone( t1.brain$bmask )
-#    ImageMath(3,mywmask,"+",segs$probabilityimages[[2]], segs$probabilityimages[[3]])
-#    brain<-abpN4( img = t1.brain$brain , intensityTruncation=c( 0.01, 0.999, 256 )  ,
-#          mask = t1.brain$bmask , weightimg= mywmask  )
-#    ImageMath(3, brain,'m', brain, t1.brain$bmask)
-# }
-# segs <- Atropos(d = 3, a = brain, m = "[0.1,1x1x1]", c = "[25,0]",
-#   i = probabilityimages, x =  t1.brain$bmask , priorweight = 0.0 )
-# t1.brain$kmeansseg<-segs$segmentation
-
 ####### ASL processing.  #########
 avgpcasl<-new( "antsImage" , "float" , 3 )
 antsMotionCorr( list( d = 3 , a = pcasl , o = avgpcasl ) )
@@ -125,7 +99,3 @@ antsImageWrite(cbf$meancbf, paste(outdir, '/', opt$prefix, 'MeanCBF.nii.gz', sep
 myvals <- data.frame(GMVals=cbfvals.gm$roiMeans, WMVals=cbfvals.wm$roiMeans)
 row.names(myvals) <- as.character(cbfvals.gm$roiValues)
 write.csv(myvals, paste(outdir, '/', opt$prefix, 'ROIValues.csv', sep=''))
-
-
-
-
