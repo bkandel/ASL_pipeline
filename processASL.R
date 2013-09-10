@@ -46,8 +46,6 @@ outdir   <- opt$outdir
 ####### ASL processing.  #########
 avgpcasl<-new( "antsImage" , "float" , 3 )
 antsMotionCorr( list( d = 3 , a = pcasl , o = avgpcasl ) )
-plotANTsImage( avgpcasl, slices="1x14x2",axis=0, 
-               outname=paste(outdir, '/avg_pcasl.png', sep=''))
 transform.asl2t1 <- suppressMessages(antsRegistration(t1, 
                                                       avgpcasl, "Rigid", outdir))
 ## should probably do something more like what we do in antsIntermodalityIntersubject.sh
@@ -95,7 +93,7 @@ antsImageWrite(cbf.warped2template,
 antsImageWrite(cbf.warped2t1, 
     paste(outdir, '/', opt$prefix, 'MeanCBFWarpedToT1.nii.gz', sep=''))
 antsImageWrite(cbf$meancbf, paste(outdir, '/', opt$prefix, 'MeanCBF.nii.gz', sep=''))
-
+antsImageWrite(avgpcasl, paste(outdir, '/', opt$prefix, 'AveragePCASL.nii.gz', sep=''))
 myvals <- data.frame(GMVals=cbfvals.gm$roiMeans, WMVals=cbfvals.wm$roiMeans)
 row.names(myvals) <- as.character(cbfvals.gm$roiValues)
 write.csv(myvals, paste(outdir, '/', opt$prefix, 'ROIValues.csv', sep=''))
